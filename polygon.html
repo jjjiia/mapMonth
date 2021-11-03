@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+	  <meta charset="UTF-8">
+    <title>SVI v0.1</title>
+
+    <meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+    <!-- <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css"> -->
+  <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
+  <script src="https://api.mapbox.com/mapbox-gl-js/v1.10.1/mapbox-gl.js"></script>
+  <link href='https://api.mapbox.com/mapbox-gl-js/v1.10.1/mapbox-gl.css' rel='stylesheet' />
+
+  <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.5.1/mapbox-gl-geocoder.min.js"></script>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@700&family=Raleway:wght@600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@700&family=Coda+Caption:wght@800&family=Hammersmith+One&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.min.js"></script>
+
+<script src="https://code.jquery.com/jquery-1.12.4.min.js"
+        integrity="sha384-nvAa0+6Qg9clwYCGGPpDQLVpLNn0fRaROjHqs13t4Ggj3Ez50XnGQqc/r8MhnRDZ"
+        crossorigin="anonymous">
+</script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
+<script type="text/javascript" src="js/d3.js"></script>
+<script type="text/javascript" src="js/queue.v1.min.js"></script>
+    <style>
+		body{
+			font-family:helvetica;
+		}
+        #title{
+        	font-size:18px;
+        }
+		#chart{
+			position:fixed;
+			top:0px;
+			left:0px;
+		}
+		#rollover{
+			z-index:999;
+			position:fixed;
+			top:500px;
+			left:500px;
+		}
+</style>
+
+</head>
+<div id="title">Congressional Districts*</div>
+<div id="chart"></div>
+<div id="rollover"></div>
+
+<body>
+
+<script>
+	  var numberToState= {'01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT','10':'DE','11':'DC','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL','18':'IN','19':'IA','20':'KS','21':'KY','22':'LA','23':'ME','24':'MD','25':'MA','26':'MI','27':'MN','28':'MS','29':'MO','30':'MT','31':'NE','32':'NV','33':'NH','34':'NJ','35':'NM','36':'NY','37':'NC','38':'ND','39':'OH','40':'OK','41':'OR','42':'PA','44':'RI','45':'SC','46':'SD','47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA','54':'WV','55':'WI','56':'WY','60':'AS','66':'GU','69':'MP','72':'PR','78':'VI'}
+	var congress = d3.json("congressional_perimeter.geojson")
+	var centroids = d3.json("congressional_centroids.geojson")
+	Promise.all([congress,centroids])
+	.then(function(data){
+		var w = window.innerWidth
+		var h = window.innerHeight
+			var svg = d3.select("#chart").append("svg").attr("width",w).attr("height",h)
+	        
+		drawPolygons(data[0],data[1],svg,w,h)
+	})
+	function drawPolygons(data,centroids,svg,w,h){
+		var formatted = byId(data)
+		console.log(formatted)
+		var formattedCentroids = byId(centroids)
+		var ratioExtent = d3.extent(data.features,function(d){
+			//if(d.properties.GEOID!="0200"){
+			return d.ratio
+				//}
+		})
+		var areaExtent = d3.extent(data.features,function(d){
+															if(d.properties.GEOID!="0200"){
+																return Math.sqrt(d.properties.ALAND)
+															}
+														})
+		var periExtent = d3.extent(data.features,function(d){
+														if(d.properties.GEOID!="0200"){
+																return Math.sqrt(d.properties.perimeter)
+														}
+													})
+		
+		var ratioScale = d3.scaleLinear().domain(ratioExtent).range([100,w-100])
+		var xScale = d3.scaleLinear().domain(areaExtent).range([100,w-100])
+		var yScale = d3.scaleLinear().domain(periExtent).range([100,h-100])
+		
+	//	var zScale =	d3.scaleLinear().domain(areaExtent).range([1000,100])									
+		
+		var xAxis = d3.axisBottom().scale(yScale)
+		svg.append("g").call(xAxis).attr("transform","translate(0,"+(h-100)+")")
+		svg.append('text').text("perimeter/area ratio").attr("x",w/2).attr("y",h-50)										
+													
+		var yAxis = d3.axisLeft().scale(yScale)
+		svg.append("g").call(yAxis).attr("transform","translate(100,0)")
+		svg.append('text').text("perimeter").attr("x",10).attr("y",h/2)								
+		
+		
+		//console.log(ratioExtent)
+		for(var c in formatted){
+			
+			//console.log(formatted[c])
+			var gid = formatted[c].properties.GEOID
+			var center = formattedCentroids[gid].geometry.coordinates
+		//console.log(zScale(formatted[c].properties.ALAND))
+			
+	        var projection = d3.geoAlbers()
+                    .fitExtent([[0,0],[50,50]],formatted[c])
+			
+			//.scale(zScale(Math.sqrt(formatted[c].properties.ALAND)))
+			var centerXY = projection(center)
+	        var path = d3.geoPath().projection(projection)
+			
+			var ratioOffset = ratioScale(formatted[c].ratio)
+			
+			var offsetX = xScale(Math.sqrt(formatted[c].properties.ALAND))
+			var offsetY = yScale(Math.sqrt(formatted[c].properties.perimeter))
+			
+			//console.log(offsetX)
+		
+			var formattedDistrict = {}
+			formattedDistrict["type"]="FeatureCollection"
+			formattedDistrict["crs"]=data["crs"]
+			formattedDistrict["features"]=[formatted[gid]]
+		
+	        svg//.selectAll("#_"+gid)
+				.append("path")
+	            .attr("d", path(formattedDistrict))
+	            .attr("fill", "none")
+	            .attr("stroke","black")
+				.attr("stroke-width",.2)
+				.attr("opacity",1)
+				.attr("id","_"+gid)
+				.attr("transform","translate("+(-(centerXY[0]-ratioOffset))+","+(-(centerXY[1]-offsetY))+")")
+				.on("mouseover",function(){
+					var thisId = d3.select(this).attr("id").replace("_","")
+					var data = formatted[thisId]
+					var state = numberToState[data.properties["STATEFP"]]
+					var district = data.properties["CD116FP"]
+					d3.select("#rollover").html("District "+district+" in "+state)
+					d3.select(this).attr("fill","red")
+				})
+				.on("mouseout",function(){
+					d3.select(this).attr("fill","none")
+				})
+			//break
+		}
+		
+	}
+	
+    function byId(data){
+		var formatted = {}
+		for(var i in data.features){
+			
+			var gid = data.features[i].properties.GEOID
+			var district = data["features"][i]
+			var area = district.properties.ALAND
+			var peri = district.properties.perimeter
+			var ratio = peri/area
+			district["ratio"]=ratio
+			formatted[gid]=district
+		}
+		return formatted
+    }
+	
+</script>
+
+
+</body>
+</html>
