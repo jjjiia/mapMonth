@@ -35,8 +35,20 @@
 			font-family:helvetica;
 		}
         #title{
-        	font-size:18px;
+        	font-size:24px;
+			position:fixed;
+			top:20px;
+			left:20px;
         }
+		#subtitle{
+			position:fixed;
+			top:20px;
+			left:300px;
+			width:400px;
+			font-size:14px;
+			border-left:1px solid black;
+			padding:10px;
+		}
 		#chart{
 			position:fixed;
 			top:0px;
@@ -51,7 +63,8 @@
 </style>
 
 </head>
-<div id="title">Congressional Districts*</div>
+<div id="title"><strong>Congressional Districts</strong><br>are the <br><strong>Strangest Polygons</strong></div>
+<div id="subtitle"> Here is a scatterplot of how the length of the perimeter compare to the size of the congressional district. To the top right, short perimeters that are too long for the district size perhaps pointing to more interference.</div>
 <div id="chart"></div>
 <div id="rollover"></div>
 
