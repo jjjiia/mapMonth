@@ -3,7 +3,7 @@
 <head>
 
 	  <meta charset="UTF-8">
-    <title>SVI v0.1</title>
+    <title>04 Hexagons</title>
 
     <meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
@@ -64,13 +64,23 @@
 		.smallMap{
 			display:inline-block;
 		}
+		#key{
+			width:200px;
+			height:20px;
+			background: linear-gradient(90deg, rgba(255,0,0,1) 0%, rgba(255,255,255,1) 50%, rgba(20,255,40,1) 100%);
+			text-align:center;
+		}
 </style>
 <script type="text/javascript" src="state_data/censusDataKeys.js"></script>
 
 
 </head>
-<div id="title"><strong>% Change by State<br>between 2010 and 2020 <br>Census Counts</strong></div>
-<div id="subtitle">Small multiples on % change on currently released Census data </div>
+<div id="title"><strong>% Change by State</strong><br>between 2010 and 2020 <br>Census Counts</div>
+<div id="subtitle">Small multiples on % change on currently released Census data <br> <br>
+	
+<div id="key"></div>
+<div id="keyLabel">-% &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp  &nbsp  &nbsp  &nbsp 0% &nbsp  &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp +%</div>
+</div>
 <div id="chart"></div>
 <div id="rollover"></div>
 
@@ -89,12 +99,15 @@
 	
 Promise.all([states,census])
 	.then(function(data){
+				drawHexMap(data[1], data[0],"T001_001")
 		
 		//console.log(censusDataKeys)
 		for(var i in censusDataKeys){
 			var key = i
 			var label = censusDataKeys[i]
-			if(label.search("Change Percent")>-1 && label.search("Change Percent Points")==-1){
+			console.log(key)
+			
+			if(label.search("Change Percent")>-1 && label.search("Points")==-1 && key.split("_")[1]!="000"){
 				//console.log(key,label)
 				drawHexMap(data[1], data[0],key)
 			}
@@ -132,19 +145,22 @@ Promise.all([states,census])
 			var cScale = d3.scaleLinear().domain([columnExtent[0],columnExtent[1]]).range(["white","green"])
 		}
 														
-var svg = d3.select("#chart").append("div").attr("class","smallMap").append("svg").attr("width",280).attr("height",200)
+var svg = d3.select("#chart").append("div").attr("class","smallMap").append("svg").attr("width",280).attr("height",240)
 		
 		var title = censusDataKeys[column]
-		svg.append("text").text(title.replace("Change Percent","Change %")).attr("x",10).attr("y",20)
-        .style("font-size", 12)
+		svg.append("text").text(title.replace("Change Percent","")).attr("x",10).attr("y",30)
+        .style("font-size", 14)
+				//
+		// svg.append("text").text(column).attr("x",10).attr("y",40)
+		//         .style("font-size", 14)
 		
-		svg.append("text").attr("id","rolloverText_"+column).text("rollover to see %").attr("x",10).attr("y",190)
+		svg.append("text").attr("id","rolloverText_"+column).text("rollover to see % change").attr("x",10).attr("y",210)
 		.attr("fill","#555")
         .style("font-size", 12)
 		
 	var projection = d3.geoMercator()
 	    .scale(220) 
-	    .translate([535, 280]); 
+	    .translate([535, 300]); 
 		
 var path = d3.geoPath()
     .projection(projection)
@@ -164,7 +180,7 @@ var path = d3.geoPath()
 			var state = d["properties"]["iso3166_2"]
 		  	return "outline_"+state
 		  })
-          .attr("stroke", "white")
+          .attr("stroke", "#aaa")
 		  .on("mouseover",function(d){
 			var state = d["properties"]["iso3166_2"]
 			var sData = byState[state]["SE_"+column]
@@ -172,11 +188,11 @@ var path = d3.geoPath()
 			 d3.select(this).attr("stroke","black")
 		  })
 		  .on("mouseout",function(d){
-			d3.select("#rolloverText_"+column).text("")
-			 d3.select(this).attr("stroke","white")
+			d3.select("#rolloverText_"+column).text("rollover to see % change")
+			 d3.select(this).attr("stroke","#aaa")
 		  	
 		  })
-		  .attr("cursor","pointer")
+		  .style("cursor","pointer")
 
   // Add the labels
   svg.append("g")
@@ -202,11 +218,11 @@ var path = d3.geoPath()
   		  .on("mouseout",function(d){
   			var state = d["properties"]["iso3166_2"]
 			  
-  			d3.select("#rolloverText_"+column).text("")
-  			 d3.select("#outline_"+state).attr("stroke","white")
+  			d3.select("#rolloverText_"+column).text("rollover to see % change")
+  			 d3.select("#outline_"+state).attr("stroke","#aaa")
 		  	
   		  })
-		  .attr("cursor","pointer")
+		  .style("cursor","pointer")
 		  
 	}
 	 
