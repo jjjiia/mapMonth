@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+	  <meta charset="UTF-8">
+    <title>05 Open Street Maps Data</title>
+
+    <meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+    <!-- <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css"> -->
+  <script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
+  <script src="https://api.mapbox.com/mapbox-gl-js/v1.10.1/mapbox-gl.js"></script>
+  <link href='https://api.mapbox.com/mapbox-gl-js/v1.10.1/mapbox-gl.css' rel='stylesheet' />
+
+  <link href='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.css' rel='stylesheet' />
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.5.1/mapbox-gl-geocoder.min.js"></script>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@700&family=Raleway:wght@600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@700&family=Coda+Caption:wght@800&family=Hammersmith+One&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.min.js"></script>
+
+<script src="https://code.jquery.com/jquery-1.12.4.min.js"
+        integrity="sha384-nvAa0+6Qg9clwYCGGPpDQLVpLNn0fRaROjHqs13t4Ggj3Ez50XnGQqc/r8MhnRDZ"
+        crossorigin="anonymous">
+</script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
+<script type="text/javascript" src="js/d3.js"></script>
+<script type="text/javascript" src="js/queue.v1.min.js"></script>
+    <style>
+		body{
+			font-family:helvetica;
+		}
+		#header{
+			background-color:#fff;
+			height:50px;
+			width:100%;
+			position:fixed;
+			top:0px;
+			left:0px;
+			z-index:99;
+			padding:10px;
+			border:1px solid black;
+		}
+        #title{
+        	font-size:24px;
+			z-index:99;
+        }
+		#subtitle{
+			position:fixed;
+			height:50px;
+			left:200px;
+			top:0px;
+			width:600px;
+			font-size:14px;
+			border-left:1px solid black;
+			padding:10px;
+			z-index:99;
+		}
+		#chart{
+			position:fixed;
+			top:0px;
+			left:0px;
+			width:100%;
+			height:100vh;
+		}
+		#rollover{
+			z-index:999;
+			position:absolute;
+			top:500px;
+			left:500px;
+			background-color:#fff;
+			width:100px;
+			padding:10px;
+			border:1px solid black;
+		}
+		#layers{
+			position:fixed;
+			top:100px;
+			left:10px;
+			z-index:999;
+			padding:10px;
+		}
+</style>
+
+</head>
+<div id='header'>
+	<div id="title"><strong>Foods</strong><br>in <strong>New York</strong></div>
+	<div id="subtitle">Foodscape, using OSM data, a fairly traditional map. <br>
+		Turn layers on and off to see types of food places.<br>
+		First time looking at OSM data. Will make something more interesting next time.</div>
+</div>
+<div id="layers"></div>
+<div id="chart"></div>
+<div id="rollover"></div>
+
+<body>
+
+<script>
+	var colors = ["#c4608c",
+"#5fba5a",
+"#b45ac2",
+"#b3b43d",
+"#6f7bca",
+"#ce7640",
+"#4dbab5",
+"#cd464a",
+"#578141",
+"#a98b43"]
+	 var types = ["restaurant","fast_food","cafe","butcher","greengrocer","supermarket","bakery","food_court","pub","greengrocer","market_place"]
+	
+	mapboxgl.accessToken = 'pk.eyJ1IjoiampqaWlhMTIzIiwiYSI6ImNpbDQ0Z2s1OTN1N3R1eWtzNTVrd29lMDIifQ.gSWjNbBSpIFzDXU2X5YCiQ';
+	const map = new mapboxgl.Map({
+	container: 'chart', // container ID
+	style: 'mapbox://styles/jjjiia123/ckvlgfllg51n314nbsvj6v50d', // style URL
+	zoom: 10, // starting zoom
+	center: [-73.9,40.763] // starting center
+	});
+ 
+	
+
+ 
+	
+	
+	var osmData = d3.json("osm/ny.geojson")
+	Promise.all([osmData])
+	.then(function(data){
+		map.on('load', () => {
+			
+			drawLayers(data[0])
+		})
+	})
+	
+	function drawLayers(data){
+		var byCats=getCats(data.features)
+		// console.log(byCats)
+// 		console.log(data)
+		var onOff = {}
+		var count = 0
+		for(var c in byCats){
+			onOff[c]=true
+			var color = colors[count]
+			count+=1
+			d3.select("#layers").append("div")//.style("border","1px solid black")
+			.style("margin","10px")
+			.style("padding","5px")
+			.style("background-color",color)
+			.attr("id",c)
+			.html(c.split("_").join(" ")+" "+byCats[c].length)
+			.style("color","black")
+			//.attr("layerOn",true)
+			.on("click",function(){
+				var layerName = d3.select(this).attr("id")
+				var on =onOff[c]
+				if(on==true){
+					map.setLayoutProperty(layerName, 'visibility', 'none');
+					d3.select(this).style("opacity",.3)
+					onOff[c]=false
+				}else{
+					map.setLayoutProperty(layerName, 'visibility', 'visible');
+					d3.select(this).style("opacity",1)
+					onOff[c]=true
+				}
+				
+			})
+			//console.log(c)
+			var thisLayer = {}
+			thisLayer["type"]="FeatureCollection"
+			thisLayer["crs"]=data["crs"]
+			thisLayer["features"]=byCats[c]
+			
+			
+			map.addSource(c, {
+			type: 'geojson',
+			// Use a URL for the value for the `data` property.
+				data: thisLayer
+			});
+			
+			map.addLayer({
+			'id': c,
+			'type': 'circle',
+			'source': c,
+			'paint': {
+			'circle-radius': 2,
+			'circle-stroke-width': 0,
+			'circle-color': color,
+			'circle-stroke-color': 'white',
+				'circle-opacity':1
+			}
+			});
+			map.setPaintProperty(c,'circle-radius',{'base': 1,'stops': [[4, 1],[9, 2],[14, 4]]})
+			
+			map.on('mouseenter', c, (e) => {
+				var x = window.event.pageX
+				var y = window.event.pageY
+				d3.select("#rollover").style("left",x+10+"px").style('top',y+"px")
+				d3.select("#rollover")
+				.html(e.features[0]["properties"]["name"])
+				
+			})
+		}
+	}
+	
+	function getCats(data){
+		var byCats ={}
+		for(var t in types){
+			byCats[types[t]]=[]
+		}
+		for(var i in data){
+			var type = data[i].properties.fclass
+			if(types.indexOf(type)>-1){
+				byCats[type].push(data[i])
+			}
+		}
+		return byCats
+	}
+	
+</script>
+
+
+</body>
+</html>
